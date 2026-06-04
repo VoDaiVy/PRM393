@@ -1,4 +1,3 @@
-import 'dart:io';
 
 // 1. Lớp cha trừu tượng (Abstract Class) theo sơ đồ UML
 abstract class Employee {
@@ -27,8 +26,7 @@ abstract class Employee {
 
 // 2. Ba lớp con kế thừa từ lớp cha Employee
 class AdministrativeEmployee extends Employee {
-  AdministrativeEmployee(String id, String fullName, double baseSalary)
-      : super(id, fullName, baseSalary);
+  AdministrativeEmployee(super.id, super.fullName, super.baseSalary);
 
   @override
   double getIncome() => baseSalary;
@@ -38,8 +36,7 @@ class SalesEmployee extends Employee {
   double salesRevenue;
   double commissionRate;
 
-  SalesEmployee(String id, String fullName, double baseSalary, this.salesRevenue, this.commissionRate)
-      : super(id, fullName, baseSalary);
+  SalesEmployee(super.id, super.fullName, super.baseSalary, this.salesRevenue, this.commissionRate);
 
   @override
   double getIncome() => baseSalary + (salesRevenue * commissionRate);
@@ -48,8 +45,7 @@ class SalesEmployee extends Employee {
 class Manager extends Employee {
   double responsibilityAllowance;
 
-  Manager(String id, String fullName, double baseSalary, this.responsibilityAllowance)
-      : super(id, fullName, baseSalary);
+  Manager(super.id, super.fullName, super.baseSalary, this.responsibilityAllowance);
 
   @override
   double getIncome() => baseSalary + responsibilityAllowance;
