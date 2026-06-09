@@ -13,17 +13,15 @@ class ResponsiveMovieApp extends StatelessWidget {
       title: 'Lab 6 - Responsive UI',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(
-          0xFF0F0F13,
-        ), // Deep modern dark background
+        scaffoldBackgroundColor: const Color(0xFF0F0F13),
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF6C63FF), // Modern purple accent
-          surface: Color(0xFF1C1C24), // Slightly lighter surface for cards
+          primary: Color(0xFF6C63FF),
+          surface: Color(0xFF1C1C24),
         ),
         useMaterial3: true,
-        fontFamily: 'Roboto', // Clean font
+        fontFamily: 'Roboto',
       ),
-      home: const GenreScreen(),
+      home: const MainNavigatorScreen(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -45,8 +43,8 @@ class Movie {
   });
 }
 
-// Constant list of sample movies
-final List<Movie> allMovies = [
+// Global list so we can add new movies functionally
+List<Movie> allMovies = [
   const Movie(
     title: 'Inception',
     year: 2010,
@@ -69,7 +67,7 @@ final List<Movie> allMovies = [
     genres: ['Sci-Fi', 'Drama'],
     rating: 8.6,
     posterUrl:
-        'https://image.tmdb.org/t/p/w500/gEU2QlsUUQZnK2sW1AItBntB6B7.jpg',
+        'https://m.media-amazon.com/images/I/91vIHsL-zjL._AC_SY300_SX300_QL70_ML2_.jpg',
   ),
   const Movie(
     title: 'Avengers: Endgame',
@@ -101,7 +99,7 @@ final List<Movie> allMovies = [
     genres: ['Action', 'Adventure'],
     rating: 8.0,
     posterUrl:
-        'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1R80vEMqm08Ofm.jpg',
+        'https://images.thedirect.com/media/article_full/spider-man-no-way-home-art-collection.jpg',
   ),
   const Movie(
     title: 'The Matrix',
@@ -113,8 +111,61 @@ final List<Movie> allMovies = [
   ),
 ];
 
+// Global state for Favorites
+final Set<String> favoriteMovies = {};
+
+// Root Navigator Screen to hold BottomNavigationBar
+class MainNavigatorScreen extends StatefulWidget {
+  const MainNavigatorScreen({super.key});
+
+  @override
+  State<MainNavigatorScreen> createState() => _MainNavigatorScreenState();
+}
+
+class _MainNavigatorScreenState extends State<MainNavigatorScreen> {
+  int _currentIndex = 0;
+
+  // Refresh callback so child screens can force a rebuild here (e.g. when adding a movie)
+  void _triggerRefresh() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          GenreScreen(onMovieAdded: _triggerRefresh),
+          const FavoritesScreen(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        backgroundColor: const Color(0xFF1C1C24),
+        selectedItemColor: const Color(0xFF6C63FF),
+        unselectedItemColor: Colors.grey[600],
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.movie), label: 'Browse'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favorites',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class GenreScreen extends StatefulWidget {
-  const GenreScreen({super.key});
+  final VoidCallback onMovieAdded;
+
+  const GenreScreen({super.key, required this.onMovieAdded});
 
   @override
   State<GenreScreen> createState() => _GenreScreenState();
@@ -122,6 +173,8 @@ class GenreScreen extends StatefulWidget {
 
 class _GenreScreenState extends State<GenreScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearchFocused = false;
 
   String searchQuery = '';
   List<String> selectedGenres = [];
@@ -139,9 +192,114 @@ class _GenreScreenState extends State<GenreScreen> {
   final List<String> sortOptions = ['A-Z', 'Z-A', 'Rating', 'Year'];
 
   @override
+  void initState() {
+    super.initState();
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
   void dispose() {
+    _searchFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showAddMovieDialog() {
+    final titleCtrl = TextEditingController();
+    final yearCtrl = TextEditingController();
+    final ratingCtrl = TextEditingController();
+    String selectedDialogGenre = 'Action';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1C1C24),
+          title: const Text('Add New Movie'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleCtrl,
+                  decoration: const InputDecoration(labelText: 'Movie Title'),
+                ),
+                TextField(
+                  controller: yearCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Release Year'),
+                ),
+                TextField(
+                  controller: ratingCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Rating (0.0 - 10.0)',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: selectedDialogGenre,
+                  decoration: const InputDecoration(labelText: 'Primary Genre'),
+                  items: genres
+                      .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) selectedDialogGenre = val;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6C63FF),
+              ),
+              onPressed: () {
+                if (titleCtrl.text.isNotEmpty && yearCtrl.text.isNotEmpty) {
+                  final newMovie = Movie(
+                    title: titleCtrl.text,
+                    year: int.tryParse(yearCtrl.text) ?? 2025,
+                    genres: [selectedDialogGenre],
+                    rating: double.tryParse(ratingCtrl.text) ?? 5.0,
+                    // Generic placeholder poster for custom added movies
+                    posterUrl:
+                        'https://via.placeholder.com/500x750.png?text=Custom+Movie',
+                  );
+
+                  // Functional change: Add to global list
+                  setState(() {
+                    allMovies.add(newMovie);
+                  });
+                  widget.onMovieAdded();
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Added "${titleCtrl.text}" successfully!'),
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Add Movie',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -173,13 +331,18 @@ class _GenreScreenState extends State<GenreScreen> {
     final isTabletOrWeb = screenWidth >= 800;
 
     return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddMovieDialog,
+        backgroundColor: const Color(0xFF6C63FF),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
               child: Text(
                 'Find a Movie',
                 style: TextStyle(
@@ -194,47 +357,90 @@ class _GenreScreenState extends State<GenreScreen> {
             // Search Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Type a movie title or keyword...',
-                  hintStyle: TextStyle(color: Colors.grey[500]),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[400]),
-                  suffixIcon: searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              searchQuery = '';
-                            });
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: const Color(0xFF1C1C24), // Modern dark pill
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF6C63FF),
-                      width: 1.5,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: _isSearchFocused
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF6C63FF,
+                            ).withValues(alpha: 0.3),
+                            blurRadius: 15,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: TextField(
+                  focusNode: _searchFocusNode,
+                  controller: _searchController,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Type a movie title or keyword...',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: _isSearchFocused
+                          ? const Color(0xFF6C63FF)
+                          : Colors.grey[400],
+                    ),
+                    suffixIcon: searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                searchQuery = '';
+                              });
+                            },
+                          )
+                        : IconButton(
+                            icon: const Icon(Icons.mic, color: Colors.grey),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).clearSnackBars();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                    'Voice search is not available in this demo. 🎤',
+                                  ),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  backgroundColor: const Color(0xFF2C2C34),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                    filled: true,
+                    fillColor: const Color(0xFF1C1C24),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF6C63FF),
+                        width: 1.5,
+                      ),
                     ),
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
                 ),
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
 
             // Filters Section (Sort & Genres)
             Padding(
@@ -262,7 +468,7 @@ class _GenreScreenState extends State<GenreScreen> {
                           color: const Color(0xFF1C1C24),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                           ),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -296,7 +502,7 @@ class _GenreScreenState extends State<GenreScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   // Genres Header
                   Row(
@@ -358,7 +564,7 @@ class _GenreScreenState extends State<GenreScreen> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
                   // Genre Chips
                   Wrap(
@@ -387,17 +593,13 @@ class _GenreScreenState extends State<GenreScreen> {
                           });
                         },
                         backgroundColor: const Color(0xFF1C1C24),
-                        selectedColor: const Color(
-                          0xFF6C63FF,
-                        ), // Vibrant selection
+                        selectedColor: const Color(0xFF6C63FF),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            20,
-                          ), // Pill shape chips
+                          borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
                             color: isSelected
                                 ? const Color(0xFF6C63FF)
@@ -405,75 +607,181 @@ class _GenreScreenState extends State<GenreScreen> {
                           ),
                         ),
                         showCheckmark: false,
-                        elevation: isSelected
-                            ? 4
-                            : 0, // Slight shadow when selected
+                        elevation: isSelected ? 4 : 0,
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
 
             // Movie List View
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  if (visibleMovies.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.movie_filter,
-                            size: 64,
-                            color: Colors.grey[800],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No movies found.',
-                            style: TextStyle(
-                              color: Colors.grey[500],
-                              fontSize: 18,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: LayoutBuilder(
+                  key: ValueKey<int>(visibleMovies.length),
+                  builder: (context, constraints) {
+                    if (visibleMovies.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.movie_filter,
+                              size: 64,
+                              color: Colors.grey[800],
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+                            const SizedBox(height: 16),
+                            Text(
+                              'No movies found.',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 18,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
 
-                  if (constraints.maxWidth < 800) {
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      itemCount: visibleMovies.length,
-                      itemBuilder: (context, index) {
-                        return ResponsiveMovieCard(movie: visibleMovies[index]);
-                      },
-                    );
-                  } else {
-                    return GridView.count(
-                      crossAxisCount: 2,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 8,
-                      ),
-                      childAspectRatio: 2.5,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      children: visibleMovies.map((movie) {
-                        return ResponsiveMovieCard(movie: movie);
-                      }).toList(),
-                    );
-                  }
-                },
+                    if (constraints.maxWidth < 800) {
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        itemCount: visibleMovies.length,
+                        itemBuilder: (context, index) {
+                          return ResponsiveMovieCard(
+                            movie: visibleMovies[index],
+                          );
+                        },
+                      );
+                    } else {
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        childAspectRatio: 2.5,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        children: visibleMovies.map((movie) {
+                          return ResponsiveMovieCard(movie: movie);
+                        }).toList(),
+                      );
+                    }
+                  },
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// Functional Favorites Tab Screen
+class FavoritesScreen extends StatefulWidget {
+  const FavoritesScreen({super.key});
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  @override
+  Widget build(BuildContext context) {
+    // Read from global state
+    final favMovies = allMovies
+        .where((m) => favoriteMovies.contains(m.title))
+        .toList();
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTabletOrWeb = screenWidth >= 800;
+
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+            child: Text(
+              'My Favorites',
+              style: TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Expanded(
+            child: favMovies.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.favorite_border,
+                          size: 64,
+                          color: Colors.grey[800],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No favorites yet.',
+                          style: TextStyle(
+                            color: Colors.grey[500],
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Tap the heart icon on any movie to save it here.',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      if (isTabletOrWeb) {
+                        return GridView.count(
+                          crossAxisCount: 2,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          childAspectRatio: 2.5,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          children: favMovies.map((movie) {
+                            return ResponsiveMovieCard(movie: movie);
+                          }).toList(),
+                        );
+                      } else {
+                        return ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          itemCount: favMovies.length,
+                          itemBuilder: (context, index) {
+                            return ResponsiveMovieCard(movie: favMovies[index]);
+                          },
+                        );
+                      }
+                    },
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -489,22 +797,42 @@ class ResponsiveMovieCard extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       clipBehavior: Clip.antiAlias,
-      color: const Color(0xFF1C1C24), // Matches surface color
+      color: const Color(0xFF1C1C24),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: Colors.white.withOpacity(0.05),
-          width: 1,
-        ), // Subtle border
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.05), width: 1),
       ),
       elevation: 8,
-      shadowColor: Colors.black.withOpacity(0.4),
+      shadowColor: Colors.black.withValues(alpha: 0.4),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          // Await the push so we can refresh favorites list if needed
+          await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => MovieDetailScreen(movie: movie),
+            PageRouteBuilder(
+              transitionDuration: const Duration(milliseconds: 500),
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  MovieDetailScreen(movie: movie),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    var curve = Curves.easeOutCubic;
+                    var tween = Tween(
+                      begin: const Offset(0.0, 0.05),
+                      end: Offset.zero,
+                    ).chain(CurveTween(curve: curve));
+                    var opacityTween = Tween(
+                      begin: 0.0,
+                      end: 1.0,
+                    ).chain(CurveTween(curve: curve));
+
+                    return FadeTransition(
+                      opacity: animation.drive(opacityTween),
+                      child: SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      ),
+                    );
+                  },
             ),
           );
         },
@@ -514,31 +842,31 @@ class ResponsiveMovieCard extends StatelessWidget {
             double posterWidth = itemWidth > 350 ? 110 : 90;
 
             return SizedBox(
-              height: 140, // Slightly more compact card height
+              height: 140,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Poster Image
-                  Image.network(
-                    movie.posterUrl,
-                    width: posterWidth,
-                    height: 140,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: posterWidth,
-                        height: 140,
-                        color: const Color(0xFF2C2C34),
-                        child: const Icon(
-                          Icons.movie,
-                          size: 40,
-                          color: Colors.white24,
-                        ),
-                      );
-                    },
+                  Hero(
+                    tag: 'poster_${movie.title}',
+                    child: Image.network(
+                      movie.posterUrl,
+                      width: posterWidth,
+                      height: 140,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: posterWidth,
+                          height: 140,
+                          color: const Color(0xFF2C2C34),
+                          child: const Icon(
+                            Icons.movie,
+                            size: 40,
+                            color: Colors.white24,
+                          ),
+                        );
+                      },
+                    ),
                   ),
-
-                  // Details
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
@@ -598,7 +926,6 @@ class ResponsiveMovieCard extends StatelessWidget {
   }
 }
 
-// Detail Screen
 class MovieDetailScreen extends StatefulWidget {
   final Movie movie;
 
@@ -609,77 +936,138 @@ class MovieDetailScreen extends StatefulWidget {
 }
 
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
-  bool _isFavorite = false;
+  late bool _isFavorite;
   int _userRating = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Read from functional global state
+    _isFavorite = favoriteMovies.contains(widget.movie.title);
+  }
 
   @override
   Widget build(BuildContext context) {
     final movie = widget.movie;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          movie.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? const Color(0xFFFF5252) : Colors.white,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 400.0,
+            pinned: true,
+            stretch: true,
+            backgroundColor: const Color(0xFF0F0F13),
+            elevation: 0,
+            leading: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ),
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-
-              ScaffoldMessenger.of(context).clearSnackBars();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    _isFavorite
-                        ? 'Added to Favorites ❤️'
-                        : 'Removed from Favorites',
-                  ),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  duration: const Duration(seconds: 1),
-                  backgroundColor: const Color(0xFF2C2C34),
+            actions: [
+              Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.4),
+                  shape: BoxShape.circle,
                 ),
-              );
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hero Poster
-            Image.network(
-              movie.posterUrl,
-              width: double.infinity,
-              height: 400,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: double.infinity,
-                  height: 400,
-                  color: const Color(0xFF1C1C24),
-                  child: const Icon(
-                    Icons.movie,
-                    size: 100,
-                    color: Colors.white24,
+                child: IconButton(
+                  icon: Icon(
+                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite ? const Color(0xFFFF5252) : Colors.white,
                   ),
-                );
-              },
+                  onPressed: () {
+                    setState(() {
+                      _isFavorite = !_isFavorite;
+                      // Functional Change: Save/Remove from global state
+                      if (_isFavorite) {
+                        favoriteMovies.add(movie.title);
+                      } else {
+                        favoriteMovies.remove(movie.title);
+                      }
+                    });
+
+                    ScaffoldMessenger.of(context).clearSnackBars();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          _isFavorite
+                              ? 'Added to Favorites ❤️'
+                              : 'Removed from Favorites',
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        duration: const Duration(seconds: 1),
+                        backgroundColor: const Color(0xFF2C2C34),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                movie.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                ),
+              ),
+              stretchModes: const [
+                StretchMode.zoomBackground,
+                StretchMode.blurBackground,
+              ],
+              background: Hero(
+                tag: 'poster_${movie.title}',
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      movie.posterUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: const Color(0xFF1C1C24),
+                          child: const Icon(
+                            Icons.movie,
+                            size: 100,
+                            color: Colors.white24,
+                          ),
+                        );
+                      },
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            const Color(0xFF0F0F13).withValues(alpha: 0.8),
+                            const Color(0xFF0F0F13),
+                          ],
+                          stops: const [0.6, 0.9, 1.0],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            Padding(
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,7 +1083,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Average Rating
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -704,7 +1091,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1C1C24),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.05),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -735,7 +1124,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Interactive User Rating
                   const Text(
                     'Rate this movie',
                     style: TextStyle(
@@ -780,7 +1168,6 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Genres
                   const Text(
                     'Genres',
                     style: TextStyle(
@@ -803,7 +1190,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                           color: const Color(0xFF1C1C24),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                           ),
                         ),
                         child: Text(
@@ -834,12 +1221,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                       color: Colors.grey[400],
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 800),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
