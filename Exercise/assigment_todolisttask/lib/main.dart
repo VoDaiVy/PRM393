@@ -7,6 +7,43 @@ void main() {
 
 // === MODELS ===
 
+enum TaskPriority { high, medium, low }
+
+extension TaskPriorityExt on TaskPriority {
+  String get name {
+    switch (this) {
+      case TaskPriority.high:
+        return 'Cao';
+      case TaskPriority.medium:
+        return 'Trung bình';
+      case TaskPriority.low:
+        return 'Thấp';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case TaskPriority.high:
+        return const Color(0xFFFF5252);
+      case TaskPriority.medium:
+        return const Color(0xFFFFB142);
+      case TaskPriority.low:
+        return const Color(0xFF33D9B2);
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TaskPriority.high:
+        return Icons.keyboard_double_arrow_up_rounded;
+      case TaskPriority.medium:
+        return Icons.drag_handle_rounded;
+      case TaskPriority.low:
+        return Icons.keyboard_double_arrow_down_rounded;
+    }
+  }
+}
+
 class TaskCategory {
   final String name;
   final IconData icon;
@@ -31,6 +68,7 @@ class Task {
   TimeOfDay startTime;
   TimeOfDay endTime;
   TaskCategory category;
+  TaskPriority priority;
 
   Task({
     required this.title,
@@ -41,6 +79,7 @@ class Task {
     required this.startTime,
     required this.endTime,
     required this.category,
+    this.priority = TaskPriority.medium,
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
@@ -97,14 +136,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _getDayOfWeek(int weekday) {
     switch (weekday) {
-      case 1: return 'T2';
-      case 2: return 'T3';
-      case 3: return 'T4';
-      case 4: return 'T5';
-      case 5: return 'T6';
-      case 6: return 'T7';
-      case 7: return 'CN';
-      default: return '';
+      case 1:
+        return 'T2';
+      case 2:
+        return 'T3';
+      case 3:
+        return 'T4';
+      case 4:
+        return 'T5';
+      case 5:
+        return 'T6';
+      case 6:
+        return 'T7';
+      case 7:
+        return 'CN';
+      default:
+        return '';
     }
   }
 
@@ -123,18 +170,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return completed / tasks.length;
   }
 
-  void _addTask(String title, String desc, TaskCategory category, DateTime date, TimeOfDay start, TimeOfDay end) {
+  void _addTask(
+    String title,
+    String desc,
+    TaskCategory category,
+    DateTime date,
+    TimeOfDay start,
+    TimeOfDay end,
+    TaskPriority priority,
+  ) {
     setState(() {
-      _tasks.add(Task(
-        title: title, 
-        description: desc,
-        category: category, 
-        dueDate: date,
-        startTime: start,
-        endTime: end,
-      ));
+      _tasks.add(
+        Task(
+          title: title,
+          description: desc,
+          category: category,
+          dueDate: date,
+          startTime: start,
+          endTime: end,
+          priority: priority,
+        ),
+      );
       // Sort tasks by start time instead of created at, so they appear in chronological order
-      _tasks.sort((a, b) => a.startTime.hour * 60 + a.startTime.minute - (b.startTime.hour * 60 + b.startTime.minute));
+      _tasks.sort(
+        (a, b) =>
+            a.startTime.hour * 60 +
+            a.startTime.minute -
+            (b.startTime.hour * 60 + b.startTime.minute),
+      );
     });
   }
 
@@ -147,6 +210,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _deleteTask(Task task) {
     setState(() {
       _tasks.remove(task);
+    });
+  }
+
+  void _editTask(
+    Task task,
+    String title,
+    String desc,
+    TaskCategory category,
+    DateTime date,
+    TimeOfDay start,
+    TimeOfDay end,
+    TaskPriority priority,
+  ) {
+    setState(() {
+      task.title = title;
+      task.description = desc;
+      task.category = category;
+      task.dueDate = date;
+      task.startTime = start;
+      task.endTime = end;
+      task.priority = priority;
+
+      _tasks.sort(
+        (a, b) =>
+            a.startTime.hour * 60 +
+            a.startTime.minute -
+            (b.startTime.hour * 60 + b.startTime.minute),
+      );
     });
   }
 
@@ -163,11 +254,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Container(
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: isDark ? Colors.black.withOpacity(0.7) : Colors.white.withOpacity(0.85),
+                color: isDark
+                    ? Colors.black.withOpacity(0.7)
+                    : Colors.white.withOpacity(0.85),
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1.5,
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 30, offset: const Offset(0, 15))
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 30,
+                    offset: const Offset(0, 15),
+                  ),
                 ],
               ),
               child: Column(
@@ -183,7 +283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Text(
                           task.title,
                           style: TextStyle(
-                            fontSize: 24, 
+                            fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black87,
                             height: 1.2,
@@ -195,21 +295,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.1)
+                                : Colors.black.withOpacity(0.05),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.close_rounded, size: 20, color: isDark ? Colors.white70 : Colors.black54),
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: isDark ? Colors.white70 : Colors.black54,
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // Category & Status tag
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: task.category.color.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
@@ -217,11 +326,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(task.category.icon, size: 16, color: task.category.color),
+                            Icon(
+                              task.category.icon,
+                              size: 16,
+                              color: task.category.color,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               task.category.name,
-                              style: TextStyle(color: task.category.color, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: TextStyle(
+                                color: task.category.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: task.priority.color.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              task.priority.icon,
+                              size: 16,
+                              color: task.priority.color,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              task.priority.name,
+                              style: TextStyle(
+                                color: task.priority.color,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -229,7 +376,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 12),
                       if (task.isCompleted)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
@@ -237,9 +387,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.check_circle_rounded, size: 16, color: Colors.green),
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 16,
+                                color: Colors.green,
+                              ),
                               const SizedBox(width: 6),
-                              const Text('Đã xong', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)),
+                              const Text(
+                                'Đã xong',
+                                style: TextStyle(
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -250,7 +411,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   // Time info
                   Row(
                     children: [
-                      Icon(Icons.access_time_rounded, size: 20, color: isDark ? Colors.white54 : Colors.black54),
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 20,
+                        color: isDark ? Colors.white54 : Colors.black54,
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         '${task.startTime.format(context)} - ${task.endTime.format(context)}',
@@ -279,11 +444,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      task.description.isEmpty ? 'Không có mô tả chi tiết.' : task.description,
+                      task.description.isEmpty
+                          ? 'Không có mô tả chi tiết.'
+                          : task.description,
                       style: TextStyle(
                         fontSize: 15,
                         color: isDark ? Colors.white70 : Colors.black87,
@@ -291,23 +460,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            foregroundColor: Colors.redAccent,
+                            side: BorderSide(
+                              color: Colors.redAccent.withOpacity(0.5),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _deleteTask(task);
+                          },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text(
+                            'Xoá',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _showAddTaskBottomSheet(existingTask: task);
+                          },
+                          icon: const Icon(Icons.edit_rounded),
+                          label: const Text(
+                            'Sửa',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
         );
-      }
+      },
     );
   }
 
   // === BOTTOM SHEET CẬP NHẬT (THÊM THỜI GIAN VÀ CHI TIẾT) ===
-  void _showAddTaskBottomSheet() {
-    final titleController = TextEditingController();
-    final descController = TextEditingController();
-    TaskCategory selectedCategory = defaultCategories.first;
-    DateTime selectedTaskDate = _selectedDate;
-    TimeOfDay selectedStartTime = TimeOfDay.now();
-    TimeOfDay selectedEndTime = TimeOfDay(hour: (TimeOfDay.now().hour + 1) % 24, minute: TimeOfDay.now().minute);
+  void _showAddTaskBottomSheet({Task? existingTask}) {
+    final titleController = TextEditingController(
+      text: existingTask?.title ?? '',
+    );
+    final descController = TextEditingController(
+      text: existingTask?.description ?? '',
+    );
+    TaskCategory selectedCategory =
+        existingTask?.category ?? defaultCategories.first;
+    TaskPriority selectedPriority =
+        existingTask?.priority ?? TaskPriority.medium;
+    DateTime selectedTaskDate = existingTask?.dueDate ?? _selectedDate;
+    TimeOfDay selectedStartTime = existingTask?.startTime ?? TimeOfDay.now();
+    TimeOfDay selectedEndTime =
+        existingTask?.endTime ??
+        TimeOfDay(
+          hour: (TimeOfDay.now().hour + 1) % 24,
+          minute: TimeOfDay.now().minute,
+        );
 
     showModalBottomSheet(
       context: context,
@@ -319,9 +552,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final isDark = Theme.of(context).brightness == Brightness.dark;
 
             return BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), // Glassmorphism cho nền mờ
+              filter: ImageFilter.blur(
+                sigmaX: 10,
+                sigmaY: 10,
+              ), // Glassmorphism cho nền mờ
               child: Container(
-                height: MediaQuery.of(context).size.height * 0.85, // Mở rộng chiều cao vì có nhiều ô nhập
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.85, // Mở rộng chiều cao vì có nhiều ô nhập
                 padding: EdgeInsets.only(
                   bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                   left: 24,
@@ -329,12 +567,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   top: 24,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.black.withOpacity(0.7) : Colors.white.withOpacity(0.85),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
-                  border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+                  color: isDark
+                      ? Colors.black.withOpacity(0.7)
+                      : Colors.white.withOpacity(0.85),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(36),
+                  ),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1.5,
+                  ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, -10))
-                  ]
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, -10),
+                    ),
+                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -351,12 +600,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Tạo Công Việc',
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: -0.5),
+                    Text(
+                      existingTask != null ? 'Sửa Công Việc' : 'Tạo Công Việc',
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                     const SizedBox(height: 20),
-                    
+
                     Expanded(
                       child: ListView(
                         children: [
@@ -364,14 +617,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           TextField(
                             controller: titleController,
                             autofocus: true,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Tiêu đề công việc...',
-                              hintStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.normal),
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.normal,
+                              ),
                               filled: true,
-                              fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              fillColor: isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -385,9 +652,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               hintText: 'Nhập nội dung chi tiết (tuỳ chọn)...',
                               hintStyle: TextStyle(color: Colors.grey.shade500),
                               filled: true,
-                              fillColor: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                              fillColor: isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.03),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -399,21 +674,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Bắt đầu', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                    const Text(
+                                      'Bắt đầu',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                     const SizedBox(height: 8),
                                     GestureDetector(
                                       onTap: () async {
-                                        final time = await showTimePicker(context: context, initialTime: selectedStartTime);
-                                        if (time != null) setModalState(() => selectedStartTime = time);
+                                        final time = await showTimePicker(
+                                          context: context,
+                                          initialTime: selectedStartTime,
+                                        );
+                                        if (time != null)
+                                          setModalState(
+                                            () => selectedStartTime = time,
+                                          );
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.05)
+                                              : Colors.black.withOpacity(0.03),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         alignment: Alignment.center,
-                                        child: Text(selectedStartTime.format(context), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        child: Text(
+                                          selectedStartTime.format(context),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -424,21 +723,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Kết thúc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                    const Text(
+                                      'Kết thúc',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                                     const SizedBox(height: 8),
                                     GestureDetector(
                                       onTap: () async {
-                                        final time = await showTimePicker(context: context, initialTime: selectedEndTime);
-                                        if (time != null) setModalState(() => selectedEndTime = time);
+                                        final time = await showTimePicker(
+                                          context: context,
+                                          initialTime: selectedEndTime,
+                                        );
+                                        if (time != null)
+                                          setModalState(
+                                            () => selectedEndTime = time,
+                                          );
                                       },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                          borderRadius: BorderRadius.circular(12),
+                                          color: isDark
+                                              ? Colors.white.withOpacity(0.05)
+                                              : Colors.black.withOpacity(0.03),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         alignment: Alignment.center,
-                                        child: Text(selectedEndTime.format(context), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        child: Text(
+                                          selectedEndTime.format(context),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -448,46 +771,133 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Danh mục
-                          const Text('Danh mục', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          // Mức độ ưu tiên
+                          const Text(
+                            'Mức độ ưu tiên',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                           const SizedBox(height: 12),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: defaultCategories.map((cat) {
-                                final isSel = selectedCategory == cat;
-                                return GestureDetector(
-                                  onTap: () => setModalState(() => selectedCategory = cat),
+                          Row(
+                            children: TaskPriority.values.map((p) {
+                              final isSel = selectedPriority == p;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      setModalState(() => selectedPriority = p),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 300),
                                     curve: Curves.easeOutCubic,
-                                    margin: const EdgeInsets.only(right: 12),
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isSel ? cat.color.withOpacity(0.2) : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: isSel
+                                          ? p.color.withOpacity(0.2)
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                        color: isSel ? cat.color : Colors.grey.withOpacity(0.3),
+                                        color: isSel
+                                            ? p.color
+                                            : Colors.grey.withOpacity(0.3),
                                         width: isSel ? 2 : 1,
                                       ),
                                     ),
                                     child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Icon(cat.icon, color: isSel ? cat.color : Colors.grey, size: 20),
-                                        const SizedBox(width: 8),
+                                        Icon(
+                                          p.icon,
+                                          color: isSel ? p.color : Colors.grey,
+                                          size: 18,
+                                        ),
+                                        const SizedBox(width: 6),
                                         Text(
-                                          cat.name,
+                                          p.name,
                                           style: TextStyle(
-                                            color: isSel ? cat.color : Colors.grey,
-                                            fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                            color: isSel
+                                                ? p.color
+                                                : Colors.grey,
+                                            fontWeight: isSel
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                            fontSize: 13,
                                           ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Danh mục
+                          const Text(
+                            'Danh mục',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: defaultCategories.map((cat) {
+                              final isSel = selectedCategory == cat;
+                              return GestureDetector(
+                                onTap: () =>
+                                    setModalState(() => selectedCategory = cat),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeOutCubic,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSel
+                                        ? cat.color.withOpacity(0.2)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isSel
+                                          ? cat.color
+                                          : Colors.grey.withOpacity(0.3),
+                                      width: isSel ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        cat.icon,
+                                        color: isSel ? cat.color : Colors.grey,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        cat.name,
+                                        style: TextStyle(
+                                          color: isSel
+                                              ? cat.color
+                                              : Colors.grey,
+                                          fontWeight: isSel
+                                              ? FontWeight.bold
+                                              : FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ),
@@ -499,19 +909,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       height: 60,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           elevation: 10,
-                          shadowColor: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                          shadowColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.5),
                         ),
                         onPressed: () {
                           if (titleController.text.trim().isNotEmpty) {
-                            _addTask(titleController.text.trim(), descController.text.trim(), selectedCategory, selectedTaskDate, selectedStartTime, selectedEndTime);
+                            if (existingTask != null) {
+                              _editTask(
+                                existingTask,
+                                titleController.text.trim(),
+                                descController.text.trim(),
+                                selectedCategory,
+                                selectedTaskDate,
+                                selectedStartTime,
+                                selectedEndTime,
+                                selectedPriority,
+                              );
+                            } else {
+                              _addTask(
+                                titleController.text.trim(),
+                                descController.text.trim(),
+                                selectedCategory,
+                                selectedTaskDate,
+                                selectedStartTime,
+                                selectedEndTime,
+                                selectedPriority,
+                              );
+                            }
                             Navigator.pop(context);
                           }
                         },
-                        child: const Text('Thêm', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          existingTask != null ? 'Cập nhật' : 'Thêm',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -532,7 +975,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white.withOpacity(0.8) : Colors.black.withOpacity(0.6),
+          color: isDark
+              ? Colors.white.withOpacity(0.8)
+              : Colors.black.withOpacity(0.6),
           letterSpacing: 0.5,
         ),
       ),
@@ -555,18 +1000,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         },
         background: _buildSwipeAction(isLeft: true),
         secondaryBackground: _buildSwipeAction(isLeft: false),
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
           margin: const EdgeInsets.only(bottom: 16, left: 24, right: 24),
           decoration: BoxDecoration(
-            color: isDark ? Colors.white.withOpacity(0.08) : Colors.white.withOpacity(0.7),
+            color: task.isCompleted
+                ? cat.color.withOpacity(isDark ? 0.3 : 0.2)
+                : (isDark
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.white.withOpacity(0.7)),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+            border: Border.all(
+              color: task.isCompleted
+                  ? cat.color.withOpacity(0.5)
+                  : Colors.white.withOpacity(0.2),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(isDark ? 0.2 : 0.05),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
-              )
+              ),
             ],
           ),
           child: ClipRRect(
@@ -586,18 +1042,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: task.isCompleted ? cat.color : Colors.transparent,
+                          color: task.isCompleted
+                              ? cat.color
+                              : Colors.transparent,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: task.isCompleted ? cat.color : Colors.grey.withOpacity(0.5),
+                            color: task.isCompleted
+                                ? cat.color
+                                : Colors.grey.withOpacity(0.5),
                             width: 2.5,
                           ),
-                          boxShadow: task.isCompleted ? [
-                            BoxShadow(color: cat.color.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))
-                          ] : [],
                         ),
                         child: task.isCompleted
-                            ? const Icon(Icons.check_rounded, color: Colors.white, size: 20)
+                            ? const Icon(
+                                Icons.check_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              )
                             : null,
                       ),
                     ),
@@ -612,11 +1073,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 18,
-                              fontWeight: task.isCompleted ? FontWeight.normal : FontWeight.w700,
-                              color: task.isCompleted 
-                                ? Colors.grey.withOpacity(0.6) 
-                                : (isDark ? Colors.white : const Color(0xFF1A1A2E)),
-                              decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                              fontWeight: task.isCompleted
+                                  ? FontWeight.w600
+                                  : FontWeight.w700,
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A2E),
                             ),
                             child: Text(task.title),
                           ),
@@ -629,7 +1091,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: cat.color.withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(cat.icon, size: 14, color: task.isCompleted ? Colors.grey.shade400 : cat.color),
+                                child: Icon(
+                                  cat.icon,
+                                  size: 14,
+                                  color: cat.color,
+                                ),
                               ),
                               const SizedBox(width: 8),
                               // Hiện giờ thay vì tên danh mục (để tiện lợi)
@@ -637,12 +1103,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 '${task.startTime.format(context)} - ${task.endTime.format(context)}',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: task.isCompleted ? Colors.grey.shade400 : Colors.grey.shade600,
+                                  color: isDark
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade800,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
+                              const SizedBox(width: 12),
+                              // Mức độ ưu tiên
+                              Icon(
+                                task.priority.icon,
+                                size: 16,
+                                color: task.priority.color,
+                              ),
                             ],
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -662,9 +1137,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).colorScheme.primary;
 
-    final morningTasks = _tasksForSelectedDate.where((t) => t.startTime.hour < 12).toList();
-    final afternoonTasks = _tasksForSelectedDate.where((t) => t.startTime.hour >= 12 && t.startTime.hour < 18).toList();
-    final eveningTasks = _tasksForSelectedDate.where((t) => t.startTime.hour >= 18).toList();
+    final morningTasks = _tasksForSelectedDate
+        .where((t) => t.startTime.hour < 12)
+        .toList();
+    final afternoonTasks = _tasksForSelectedDate
+        .where((t) => t.startTime.hour >= 12 && t.startTime.hour < 18)
+        .toList();
+    final eveningTasks = _tasksForSelectedDate
+        .where((t) => t.startTime.hour >= 18)
+        .toList();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -679,13 +1160,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
             end: Alignment.bottomRight,
           ),
           boxShadow: [
-            BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))
-          ]
+            BoxShadow(
+              color: const Color(0xFF6C63FF).withOpacity(0.4),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: FloatingActionButton(
           onPressed: _showAddTaskBottomSheet,
           backgroundColor: Colors.transparent,
-          elevation: 0, 
+          elevation: 0,
           child: const Icon(Icons.add_rounded, size: 36, color: Colors.white),
         ),
       ),
@@ -697,7 +1182,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: isDark 
+                colors: isDark
                     ? [const Color(0xFF1A1A2E), const Color(0xFF16213E)]
                     : [const Color(0xFFF0F4FF), const Color(0xFFE5E7EB)],
               ),
@@ -733,7 +1218,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Container(color: Colors.transparent),
             ),
           ),
-          
+
           SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -754,7 +1239,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -764,7 +1251,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               fontSize: 28,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
-                              color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A2E),
                             ),
                           ),
                         ],
@@ -779,7 +1268,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               value: _completionProgress,
                               strokeWidth: 8,
                               strokeCap: StrokeCap.round,
-                              backgroundColor: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
+                              backgroundColor: isDark
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.05),
                               color: primaryColor,
                             ),
                           ),
@@ -792,7 +1283,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                           ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -804,9 +1295,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: 30, 
+                    itemCount: 30,
                     itemBuilder: (context, index) {
-                      final date = DateTime.now().add(Duration(days: index - 5));
+                      final date = DateTime.now().add(
+                        Duration(days: index - 5),
+                      );
                       final isSelected = _isSameDay(date, _selectedDate);
                       final isToday = _isSameDay(date, DateTime.now());
 
@@ -822,30 +1315,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           width: 75,
                           margin: const EdgeInsets.only(right: 12),
                           decoration: BoxDecoration(
-                            gradient: isSelected 
-                              ? const LinearGradient(
-                                  colors: [Color(0xFF6C63FF), Color(0xFF9D4EDD)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                              : LinearGradient(
-                                  colors: [
-                                    isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                                    isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.6),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
+                            gradient: isSelected
+                                ? const LinearGradient(
+                                    colors: [
+                                      Color(0xFF6C63FF),
+                                      Color(0xFF9D4EDD),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  )
+                                : LinearGradient(
+                                    colors: [
+                                      isDark
+                                          ? Colors.white.withOpacity(0.05)
+                                          : Colors.white.withOpacity(0.6),
+                                      isDark
+                                          ? Colors.white.withOpacity(0.05)
+                                          : Colors.white.withOpacity(0.6),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: isSelected 
-                                ? Colors.transparent 
-                                : (isToday ? primaryColor.withOpacity(0.5) : Colors.white.withOpacity(0.2)),
+                              color: isSelected
+                                  ? Colors.transparent
+                                  : (isToday
+                                        ? primaryColor.withOpacity(0.5)
+                                        : Colors.white.withOpacity(0.2)),
                               width: 2,
                             ),
-                            boxShadow: isSelected ? [
-                              BoxShadow(color: const Color(0xFF6C63FF).withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))
-                            ] : [],
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF6C63FF,
+                                      ).withOpacity(0.4),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ]
+                                : [],
                           ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -855,7 +1365,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: isSelected ? Colors.white.withOpacity(0.8) : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
+                                  color: isSelected
+                                      ? Colors.white.withOpacity(0.8)
+                                      : (isDark
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade600),
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -864,7 +1378,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 style: TextStyle(
                                   fontSize: 26,
                                   fontWeight: FontWeight.w900,
-                                  color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark
+                                            ? Colors.white
+                                            : Colors.black87),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -872,8 +1390,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 _getDayOfWeek(date.weekday),
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isSelected ? Colors.white.withOpacity(0.9) : (isDark ? Colors.grey.shade400 : Colors.grey.shade600),
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                  color: isSelected
+                                      ? Colors.white.withOpacity(0.9)
+                                      : (isDark
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade600),
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -897,20 +1421,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.5,
-                          color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF1A1A2E),
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: primaryColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           '${_tasksForSelectedDate.length} tasks',
-                          style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: primaryColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -926,21 +1459,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(24),
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.5),
+                                  color: isDark
+                                      ? Colors.white.withOpacity(0.05)
+                                      : Colors.white.withOpacity(0.5),
                                   shape: BoxShape.circle,
                                 ),
-                                child: Icon(Icons.check_circle_outline_rounded, size: 80, color: Colors.grey.withOpacity(0.5)),
+                                child: Icon(
+                                  Icons.check_circle_outline_rounded,
+                                  size: 80,
+                                  color: Colors.grey.withOpacity(0.5),
+                                ),
                               ),
                               const SizedBox(height: 24),
                               Text(
                                 'Thật là trống trải!',
-                                style: TextStyle(fontSize: 20, color: isDark ? Colors.grey.shade400 : Colors.grey.shade700, fontWeight: FontWeight.w800),
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  color: isDark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade700,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'Tận hưởng thời gian rảnh\nhoặc thêm ngay việc mới ở dấu + nhé.',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: isDark ? Colors.grey.shade500 : Colors.grey.shade600, fontSize: 15, height: 1.5),
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.grey.shade500
+                                      : Colors.grey.shade600,
+                                  fontSize: 15,
+                                  height: 1.5,
+                                ),
                               ),
                             ],
                           ),
@@ -950,15 +1501,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             if (morningTasks.isNotEmpty) ...[
                               _buildSectionHeader('🌅 Buổi sáng', isDark),
-                              ...morningTasks.map((t) => _buildTaskCard(t, isDark)),
+                              ...morningTasks.map(
+                                (t) => _buildTaskCard(t, isDark),
+                              ),
                             ],
                             if (afternoonTasks.isNotEmpty) ...[
                               _buildSectionHeader('☀️ Buổi chiều', isDark),
-                              ...afternoonTasks.map((t) => _buildTaskCard(t, isDark)),
+                              ...afternoonTasks.map(
+                                (t) => _buildTaskCard(t, isDark),
+                              ),
                             ],
                             if (eveningTasks.isNotEmpty) ...[
                               _buildSectionHeader('🌙 Buổi tối', isDark),
-                              ...eveningTasks.map((t) => _buildTaskCard(t, isDark)),
+                              ...eveningTasks.map(
+                                (t) => _buildTaskCard(t, isDark),
+                              ),
                             ],
                           ],
                         ),
@@ -981,7 +1538,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
       padding: const EdgeInsets.symmetric(horizontal: 28),
       child: Icon(
-        isLeft ? Icons.check_circle_outline_rounded : Icons.delete_outline_rounded,
+        isLeft
+            ? Icons.check_circle_outline_rounded
+            : Icons.delete_outline_rounded,
         color: Colors.white,
         size: 36,
       ),
