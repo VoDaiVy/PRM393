@@ -21,7 +21,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
-  // High-quality cat photo - vibrant and charming
   static const String _bgImageUrl =
       'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=1200&auto=format&fit=crop&q=80';
 

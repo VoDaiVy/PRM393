@@ -2,11 +2,6 @@ import '../models/product.dart';
 import '../models/user.dart';
 
 class MockData {
-  // ─────────────────────────────────────────────────────────────────────────
-  // MOCK USERS
-  // Bạn có thể tự thêm / sửa / xoá tài khoản ở đây.
-  // Lưu ý: role chỉ nhận 'admin' hoặc 'user'.
-  // ─────────────────────────────────────────────────────────────────────────
   static final List<User> users = [
     User(
       id: 'u1',
@@ -24,24 +19,7 @@ class MockData {
     ),
   ];
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // MOCK PRODUCTS
-  // Bạn có thể tự thêm / sửa / xoá sản phẩm ở đây.
-  //
-  // Cách thêm sản phẩm mới:
-  //   Product(
-  //     id: 'p<số tiếp theo>',        ← ID duy nhất, không được trùng
-  //     name: 'Tên sản phẩm',
-  //     description: 'Mô tả ngắn',
-  //     price: 0.0,                   ← Giá (đơn vị: USD hoặc tuỳ bạn)
-  //     imageUrl: 'https://...',      ← Link ảnh (có thể để null)
-  //     category: 'Food',            ← Danh mục: Food | Toys | Accessories | Healthcare | Others
-  //   ),
-  //
-  // Các category hiện tại: Food, Toys, Accessories, Healthcare, Others
-  // ─────────────────────────────────────────────────────────────────────────
   static final List<Product> products = [
-    // ── FOOD ─────────────────────────────────────────────────────────────
     Product(
       id: 'p1',
       name: 'Premium Dog Food',

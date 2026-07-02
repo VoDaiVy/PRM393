@@ -76,7 +76,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<bool> register(String fullName, String email, String password) async {
     if (_users.any((u) => u.email == email)) {
-      return false; // Email already exists
+      return false; 
     }
     final newUser = User(
       id: DateTime.now().toString(),
